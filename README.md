@@ -90,13 +90,25 @@ Sample json
 	2. Do data enrichment.
 	3. On the Sink, delete any data from user_cdc_events from the previous checkpointing or run.
 	4. Write all CDC events into a file on S3 and import them into user_cdc_events table.
-	5. Use SQL query to do the operations below in * bulk * and in that sequence from 
-      user_cdc_events table to the enriched_user table.
+	5. Separate CDC events into two groups: 
+		1. CDC events where there is one and only one event for a user.  We can use SQL 
+		   select * from user_cdc_events group up user_id having count(1) = 0 
+		   to determine this group of 
+		2. CDC events that are have the same user.
+	5. For the first group of CDC events, use SQL query to do the operations below in 
+	   * bulk * and in the sequence below from 
+      user_cdc_events table to the enriched_user table. 
 		a. Create
 		b. Update
-		c. Delete operations 
+		c. Delete
+	6. For the second group of CDC events, for each user, walk through its CDC events and apply them
+	   individually based on their timestamps.
 		
-		
+	This solution is likely to have higher performance and scalability due to the nature of this business domain
+	where within short time interval, it is likely Create, Update, and Delete are done for different users.
+	and it is unlikely the same user is created, updated, and deleted. 
+	So the solution is optimized for common use cases rather than edge cases.
+	
 	The advantages of this solution over the in-line database operations within Flink are
 	1. It does not rely on the event producers to put all CDC events for the same user on the same partition. 
 	   This in turn avoid hot partitions where too many events may be assigned to the same Kafka partition.
@@ -106,6 +118,7 @@ Sample json
 	   Create, Update, and Delete are still handled in the right sequence.
 	4. This is also one way how I would scale the solution for its likely higher performance and scalability.
 	
+
    
 ## Testing Approach:
 1. Generate different sample data for different data conditions such as 
@@ -117,3 +130,4 @@ Sample json
 2. If the solutions for Error handling for data enrichment are implemented, simulate error conditions for data enrichment.
 
 3. If the solutions for out of order events are implemented, generate events for the same user but are out of order.
+
