@@ -32,7 +32,7 @@ Sample json
 
 ## Architectural Decisions:
 
-1. Kafka does not guarantee event ordering across partitions that Flink's checkpoint cycle in a single transaction. And need to handle out-of-order events appropriately.
+1. Kafka does not guarantee event ordering across partitions. Need to handle out-of-order events appropriately.  
 	Solution:
 	  1. Solve the issues as far upstream as possible: Have the CDC event producer 
 		a. use the same Kafka partition for different events for the same user.
@@ -43,10 +43,12 @@ Sample json
 3. Ensure exactly-once processing where possible, specifically ensure exactly once operations on the target DB table, 
 	Solutions:
 	
-	1. use sink and two-phase commit so the database transaction commit is synchronized to Flink's checkpointing, so either both fail or both succeed. 
+	1. Synchronize all database operations within a Flink's checkpoint cycle to Flink's checkppointing and 
+	   handle them as a single transaction.
+	2. Use sink and two-phase commit so the database transaction commit is synchronized to Flink's checkpointing, so either both fail or both succeed. 
 
-	2. Flink does checkpointing first
-	3. Sink does all DB operations in
+	3. Flink does checkpointing first
+	4. Sink does all DB operations in
 	
 4. Performance considerations for data enrichment:
 	Solutions: 
