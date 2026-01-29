@@ -23,9 +23,6 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.*;
 
-/**
- * UserCdcPipeline
- */
 public class UserCdcPipeline {
 
     // ======================
@@ -85,9 +82,6 @@ public class UserCdcPipeline {
         }
     }
 
-    // ======================
-    // Main
-    // ======================
     public static void main(String[] args) throws Exception {
     	UserCdcPipeline userCdcPipeline;
     	try {
@@ -151,7 +145,7 @@ public class UserCdcPipeline {
                         enrichedUser.eventTs = event.timestamp;
                         
                         /*
-                         * 4. For data enrichment, for this exercise, keep it super simple with 
+                         * 3. For data enrichment, for this exercise, keep it super simple with 
                          * hard-coded data. For production, data enrichment
    							would likely involve data look-up. To minimize such latency and 
    							for performance and scalability, in production 
@@ -216,6 +210,10 @@ public class UserCdcPipeline {
             return Collections.singletonList(snapshotTxn);
         }
 
+        // flush and close are no-op because the DB operations of the CDC events are not
+        // performed until Flink does its checkpoint. At that time, JdbcCommitter is
+        // used to perform the DB operations in that checkpoint's interval as 
+        // one transaction
         @Override
         public void flush(boolean endOfInput) { 
         	/* no-op */ 
@@ -244,11 +242,12 @@ public class UserCdcPipeline {
 
         @Override
         public void close() {
+            // DB resources such as Connection and PreparedStatement are scoped within persist method
+            // so there are resources to close here. 
         	/* no-op */ 
         }
 
         private void persist(JdbcTransaction txn) throws IOException {
-
             runCount++;
             long persistStartNs = System.nanoTime();
             long totalPersistDurationMs, commitDurationMs, commitStartNs = 0;
@@ -328,7 +327,7 @@ public class UserCdcPipeline {
 
                 // In production: emit metric instead of println
                 System.out.println(
-                        "Record processed user= " + txn.enrichedUsers.size() +
+                        "runCount = " + runCount + " - Record processed user = " + txn.enrichedUsers.size() +
                         " - durationMs = " + recordDurationMs);
 
                 // -----------------------------------
@@ -369,8 +368,8 @@ public class UserCdcPipeline {
                 // 2. Store the metrics in a table call user_cdc_pipeline_metrics for historical long-term analysis.
                 // -----------------------------------
                 System.out.println(
-                        "DB COMMIT SUCCESS " +
-                        "records = " + txn.enrichedUsers.size() +
+                		"runCount = " + runCount + " - DB COMMIT SUCCESS" +
+                        " - records = " + txn.enrichedUsers.size() +
                         " - totalDurationMs =" + totalPersistDurationMs +
                         " - commitDurationMs =" + commitDurationMs +
                         " - sqlRetries = " + totalSqlRetries +
@@ -391,8 +390,8 @@ public class UserCdcPipeline {
                 // -----------------------------------
             	exc.printStackTrace();
                 System.err.println(
-                        "DB COMMIT FAILED " +
-                        "records = " + txn.enrichedUsers.size() +
+                		"runCount = " + runCount + " - DB COMMIT FAILED" +
+                        " - records = " + txn.enrichedUsers.size() +
                         " - totalDurationMs =" + totalPersistDurationMs +
                         " - commitDurationMs =" + commitDurationMs +
                         " - sqlRetries = " + totalSqlRetries +
