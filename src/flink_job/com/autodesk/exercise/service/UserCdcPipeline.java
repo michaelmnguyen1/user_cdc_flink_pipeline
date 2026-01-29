@@ -251,6 +251,7 @@ public class UserCdcPipeline {
 
             runCount++;
             long persistStartNs = System.nanoTime();
+            long totalPersistDurationMs, commitDurationMs, commitStartNs = 0;
             int totalSqlRetries = 0;
             int commitRetries = 0;
 
@@ -268,43 +269,49 @@ public class UserCdcPipeline {
                 // -----------------------------------
                 // Execute statements
                 // -----------------------------------
-                for (EnrichedUser u : txn.enrichedUsers) {
+                for (EnrichedUser enrichedUser : txn.enrichedUsers) {
                     int attempt = 0;
                     long backoff = INITIAL_BACKOFF_MS;
 
                     while (true) {
                         try {
-                            switch (u.op) {
+                            switch (enrichedUser.op) {
                                 case "c":
-                                    createStmt.setString(1, u.userId);
-                                    createStmt.setString(2, u.name);
-                                    createStmt.setLong(3, u.createdTimestamp);
-                                    createStmt.setLong(4, u.lastModifiedTimestamp);
-                                    createStmt.setString(5, u.enrichedData);
+                                    createStmt.setString(1, enrichedUser.userId);
+                                    createStmt.setString(2, enrichedUser.name);
+                                    createStmt.setLong(3, enrichedUser.createdTimestamp);
+                                    createStmt.setLong(4, enrichedUser.lastModifiedTimestamp);
+                                    createStmt.setString(5, enrichedUser.enrichedData);
                                     createStmt.executeUpdate();
                                     break;
+                                    
                                 case "u":
-                                    updateStmt.setString(1, u.name);
-                                    updateStmt.setLong(2, u.lastModifiedTimestamp);
-                                    updateStmt.setString(3, u.enrichedData);
-                                    updateStmt.setString(4, u.userId);
+                                    updateStmt.setString(1, enrichedUser.name);
+                                    updateStmt.setLong(2, enrichedUser.lastModifiedTimestamp);
+                                    updateStmt.setString(3, enrichedUser.enrichedData);
+                                    updateStmt.setString(4, enrichedUser.userId);
                                     updateStmt.executeUpdate();
                                     break;
+                                    
                                 case "d":
-                                    deleteStmt.setString(1, u.userId);
+                                    deleteStmt.setString(1, enrichedUser.userId);
                                     deleteStmt.executeUpdate();
                                     break;
+                                    
                                 default:
-                                    throw new SQLException("Unknown op: " + u.op);
+                                    throw new SQLException("Unknown op: " + enrichedUser.op);
                             }
                             break; // success
-                        } catch (SQLException e) {
+                        } catch (SQLException exc) {
+                        	// in Production, emit the errors to CLoudWatch or log them, so they can be monitored by tools such as Splunk.
+                        	exc.printStackTrace();
+                        	
                             attempt++;
                             totalSqlRetries++;
 
                             if (attempt >= MAX_RETRIES) {
                                 throw new IOException(
-                                        "SQL failed after retries for user=" + u.userId, e);
+                                        "SQL failed after retries for user=" + enrichedUser.userId, exc);
                             }
 
                             try {
@@ -327,7 +334,7 @@ public class UserCdcPipeline {
                 // -----------------------------------
                 // Commit with retry
                 // -----------------------------------
-                long commitStartNs = System.nanoTime();
+                commitStartNs = System.nanoTime();
                 long commitBackoff = INITIAL_BACKOFF_MS;
 
                 for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -349,14 +356,17 @@ public class UserCdcPipeline {
                     }
                 }
 
-                long commitDurationMs =
+                commitDurationMs =
                         (System.nanoTime() - commitStartNs) / 1_000_000;
 
-                long totalPersistDurationMs =
+                totalPersistDurationMs =
                         (System.nanoTime() - persistStartNs) / 1_000_000;
 
                 // -----------------------------------
                 // metrics log aligned with checkpoint
+                // In production, 
+                // 1. Emit the metrics to CloudWatch or log them so tools such as Splunk can provide operational trends of the pipeline.
+                // 2. Store the metrics in a table call user_cdc_pipeline_metrics for historical long-term analysis.
                 // -----------------------------------
                 System.out.println(
                         "DB COMMIT SUCCESS " +
@@ -367,8 +377,29 @@ public class UserCdcPipeline {
                         " - commitRetries = " + commitRetries
                 );
 
-            } catch (SQLException e) {
-                throw new IOException("Failed to persist JDBC transaction", e);
+            } catch (SQLException exc) {
+                commitDurationMs =
+                        (System.nanoTime() - commitStartNs) / 1_000_000;
+
+                totalPersistDurationMs =
+                        (System.nanoTime() - persistStartNs) / 1_000_000;
+                // -----------------------------------
+                // metrics log aligned with checkpoint
+                // In production, 
+                // 1. Emit the metrics to CloudWatch or log them so tools such as Splunk can provide operational trends of the pipeline.
+                // 2. Store the metrics in a table call user_cdc_pipeline_metrics for historical long-term analysis.
+                // -----------------------------------
+            	exc.printStackTrace();
+                System.err.println(
+                        "DB COMMIT FAILED " +
+                        "records = " + txn.enrichedUsers.size() +
+                        " - totalDurationMs =" + totalPersistDurationMs +
+                        " - commitDurationMs =" + commitDurationMs +
+                        " - sqlRetries = " + totalSqlRetries +
+                        " - commitRetries = " + commitRetries
+                );
+            	
+                throw new IOException("Failed to persist JDBC transaction", exc);
             }
         }
     }
