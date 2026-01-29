@@ -85,7 +85,10 @@ Sample json
    2. Store the pipleline metrics in the database table called user_cdc_pipeline_metrics, so their trends
       can be observed over time. Not implemented in this exercise
    
-8. Besides processing the CDC events one by one from the Flink application, a potential alternative solution is listed below.
+8. Besides processing the CDC events one by one from the Flink application, a potential alternative solution is listed below. 
+   The premise of this solution is often there are common use cases and edge cases. Instead of coming up with a single comprehensive
+   solution that cover both types of use cases, I break the larger scope into smaller scopes and provide one solution
+   for the common use cases and one solution for the edge cases.
 	1. Create a table called user_cdc_events.
 	2. Do data enrichment.
 	3. On the Sink, delete any data from user_cdc_events from the previous checkpointing or run.
