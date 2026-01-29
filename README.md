@@ -17,17 +17,20 @@ Sample json
   "timestamp": 1700000000000
 }
 
-This design prioritizes:
+## Evaluation Focus
+•	CDC Event Handling Correctness: Proper handling of create/update/delete operations, event ordering, state management
+•	Enrichment Logic Design: Thoughtful enrichment strategy, performance considerations, error handling
+•	Code Quality & Error Handling: Clean code structure, comprehensive error handling, testing approach
+•	Documentation & Operational Thinking: Clear documentation, setup instructions, monitoring considerations
 
-- Correct ordering per user
-- Event-time correctness
-- Idempotent database writes
-- Exactly once operations on the target DB table
-- Low operational complexity
-- High throughput with bounded latency
+## Key Considerations
+•	Event Ordering: How do you handle out-of-order CDC events?
+•	Exactly-Once Processing: What guarantees can you provide?
+•	State Management: How do you manage enrichment state in Flink?
+•	Error Handling: What happens when enrichment fails or target DB is unavailable?
+•	Schema Evolution: How would your pipeline handle schema changes?
 
----
-Architectural Decisions:
+## Architectural Decisions:
 
 1. Kafka does not guarantee event ordering across partitions that Flink's checkpoint cycle in a single transaction. And need to handle out-of-order events appropriately.
 	Solution:
@@ -82,7 +85,7 @@ Architectural Decisions:
    2. Store the pipleline metrics in the database table called user_cdc_pipeline_metrics, so their trends
       can be observed over time. Not implemented in this exercise
    
-8. Besides processing the CDC events one by one from the Flink application, a potential alternative solution is 
+8. Besides processing the CDC events one by one from the Flink application, a potential alternative solution is listed below.
 	1. Create a table called user_cdc_events.
 	2. Do data enrichment.
 	3. On the Sink, delete any data from user_cdc_events from the previous checkpointing or run.
@@ -104,7 +107,7 @@ Architectural Decisions:
 	4. This is also one way how I would scale the solution for its likely higher performance and scalability.
 	
    
-Testing Approach:
+## Testing Approach:
 1. Generate different sample data for different data conditions such as 
 	a. create only
 	b. create followed by update
