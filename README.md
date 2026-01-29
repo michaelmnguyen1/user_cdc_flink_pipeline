@@ -27,8 +27,7 @@ This design prioritizes:
 - High throughput with bounded latency
 
 ---
-
-Issues and Solutions:
+Architectural Decisions:
 
 1. Kafka does not guarantee event ordering across partitions that Flink's checkpoint cycle in a single transaction. And need to handle out-of-order events appropriately.
 	Solution:
@@ -77,11 +76,30 @@ Issues and Solutions:
 	5. When the database operation of a CDC event fails, check the HashMap to see if there are preceding
 	   events that are out of order. If so, record this condition so the event producer can be fixed.
 	   
-7. Operations: 
+7. Operational and monitoring strategies: 
    Solutions: At the end of each database sink,
    1. Log various pipeline metrics so tools such as CloudWatch and Splunk can be used to monitor and trigger alerts.
    2. Store the pipleline metrics in the database table called user_cdc_pipeline_metrics, so their trends
       can be observed over time. Not implemented in this exercise
+   
+8. Besides processing the CDC events one by one from the Flink application, a potential alternative solution is 
+	1. Create a table called user_cdc_events.
+	2. Do data enrichment.
+	3. On the Sink, delete any data from user_cdc_events from the previous checkpointing or run.
+	4. Write all CDC events into a file on S3 and import them into user_cdc_events table.
+	5. Use SQL query to do the operations below in * bulk * and in that sequence from 
+      user_cdc_events table to the enriched_user table.
+		a. Create
+		b. Update
+		c. Delete operations 
+		
+		
+	The advantages of this solution over the in-line database operations within Flink are
+	1. Better performance if the velocity of CDC events are high, because the operations are done in bulk.
+	2. Even if the event producer has a bug where it puts different CDC events for the same user out of order,
+	   Create, Update, and Delete are still handled in the right sequence.
+	3. This is also one way how I would scale the solution.
+	
    
 Testing Approach:
 1. Generate different sample data for different data conditions such as 
