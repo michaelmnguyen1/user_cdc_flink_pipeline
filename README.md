@@ -95,10 +95,13 @@ Architectural Decisions:
 		
 		
 	The advantages of this solution over the in-line database operations within Flink are
-	1. Better performance if the velocity of CDC events are high, because the operations are done in bulk.
-	2. Even if the event producer has a bug where it puts different CDC events for the same user out of order,
+	1. It does not rely on the event producers to put all CDC events for the same user on the same partition. 
+	   This in turn avoid hot partitions where too many events may be assigned to the same Kafka partition.
+	   This in turn improve the system's performance and scalability.
+	2. Better performance if the velocity of CDC events are high, because the database operations are done in bulk.
+	3. Even if the event producer has a bug where it puts different CDC events for the same user out of order,
 	   Create, Update, and Delete are still handled in the right sequence.
-	3. This is also one way how I would scale the solution.
+	4. This is also one way how I would scale the solution for its likely higher performance and scalability.
 	
    
 Testing Approach:
