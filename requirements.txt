@@ -1,0 +1,91 @@
+For Python, this file would be used to list the dependencies that would be used by Python build tool as in
+pandas>=2.1
+
+For Java, the dependencies are normally listed in pom.xml as part of the Maven build. For this project, the contents.xml are re-listed below.  
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.example</groupId>
+  <artifactId>flink20-cdc-enricheduser</artifactId>
+  <version>1.0.0</version>
+
+  <properties>
+    <java.version>17</java.version>
+    <flink.version>1.20.3</flink.version>
+    <kafka.connector.version>3.3.0-1.20</kafka.connector.version>
+    <jdbc.connector.version>3.3.0-1.20</jdbc.connector.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+	  <groupId>org.apache.flink</groupId>
+	  <artifactId>flink-connector-jdbc</artifactId>
+	  <version>3.3.0-1.20</version>
+	</dependency>
+
+    <!-- Flink Core -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-streaming-java</artifactId>
+      <version>${flink.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-clients</artifactId>
+      <version>${flink.version}</version>
+    </dependency>
+
+    <!-- Kafka Connector (actual published artifact for Flink 1.20) -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-connector-kafka</artifactId>
+      <version>${kafka.connector.version}</version>
+    </dependency>
+
+    <!-- JDBC Core Connector -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-connector-jdbc-core</artifactId>
+      <version>${jdbc.connector.version}</version>
+    </dependency>
+
+    <!-- JDBC Postgres Module -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-connector-jdbc-postgres</artifactId>
+      <version>${jdbc.connector.version}</version>
+    </dependency>
+
+    <!-- PostgreSQL JDBC Driver -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>42.7.3</version>
+    </dependency>
+
+    <!-- JSON (Jackson) -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.15.2</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.11.0</version>
+        <configuration>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
