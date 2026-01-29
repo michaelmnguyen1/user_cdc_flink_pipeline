@@ -18,17 +18,17 @@ Sample json
 }
 
 ## Evaluation Focus
-•	CDC Event Handling Correctness: Proper handling of create/update/delete operations, event ordering, state management
-•	Enrichment Logic Design: Thoughtful enrichment strategy, performance considerations, error handling
-•	Code Quality & Error Handling: Clean code structure, comprehensive error handling, testing approach
-•	Documentation & Operational Thinking: Clear documentation, setup instructions, monitoring considerations
+1.	CDC Event Handling Correctness: Proper handling of create/update/delete operations, event ordering, state management
+2.	Enrichment Logic Design: Thoughtful enrichment strategy, performance considerations, error handling
+3.	Code Quality & Error Handling: Clean code structure, comprehensive error handling, testing approach
+4.	Documentation & Operational Thinking: Clear documentation, setup instructions, monitoring considerations
 
 ## Key Considerations
-•	Event Ordering: How do you handle out-of-order CDC events?
-•	Exactly-Once Processing: What guarantees can you provide?
-•	State Management: How do you manage enrichment state in Flink?
-•	Error Handling: What happens when enrichment fails or target DB is unavailable?
-•	Schema Evolution: How would your pipeline handle schema changes?
+1.	Event Ordering: How do you handle out-of-order CDC events?
+2.	Exactly-Once Processing: What guarantees can you provide?
+3.	State Management: How do you manage enrichment state in Flink?
+4.	Error Handling: What happens when enrichment fails or target DB is unavailable?
+5.	Schema Evolution: How would your pipeline handle schema changes?
 
 ## Architectural Decisions:
 
